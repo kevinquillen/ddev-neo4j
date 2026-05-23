@@ -22,7 +22,10 @@ services:
     environment:
       - NEO4J_AUTH=neo4j/${DDEV_NEO4J_PASSWORD:-ddevpassword}
       - NEO4J_ACCEPT_LICENSE_AGREEMENT=${NEO4J_ACCEPT_LICENSE_AGREEMENT:-no}
-      - NEO4J_PLUGINS=${NEO4J_PLUGINS:-["apoc", "graph-data-science"]}
+      # Quoted because the JSON-array default contains YAML flow
+      # indicators ([ ] , "). Without quoting, compose-go refuses the
+      # merged file when this entry gets inlined elsewhere.
+      - 'NEO4J_PLUGINS=${NEO4J_PLUGINS:-["apoc", "graph-data-science"]}'
       - NEO4J_dbms_security_procedures_unrestricted=apoc.*,gds.*
       - NEO4J_dbms_security_procedures_allowlist=apoc.*,gds.*
       - NEO4J_server_memory_heap_initial__size=${DDEV_NEO4J_HEAP_INITIAL:-512m}

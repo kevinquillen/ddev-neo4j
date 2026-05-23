@@ -8,6 +8,12 @@
 # long as the #ddev-generated marker above is removed.
 #
 # Remove the marker line to claim ownership of this file.
+#
+# IMPORTANT: do not put values here that contain YAML flow indicators
+# ([, ], {, }, ,) — they get inlined into the rendered base compose
+# file's `web.environment` list as plain scalars, and Go's YAML
+# parser will refuse the merged file. To override the plugin list,
+# edit NEO4J_PLUGINS directly in `.ddev/docker-compose.neo4j.yaml`.
 web_environment:
   # Default credentials. Override in shared environments.
   - DDEV_NEO4J_PASSWORD=ddevpassword
@@ -22,10 +28,6 @@ web_environment:
   - DDEV_NEO4J_HEAP_INITIAL=512m
   - DDEV_NEO4J_HEAP_MAX=1G
   - DDEV_NEO4J_PAGECACHE=512m
-
-  # Plugin list. JSON-encoded array consumed by the Neo4j image.
-  # Set to '[]' to disable all plugins.
-  - NEO4J_PLUGINS=["apoc", "graph-data-science"]
 
   # Image tag. Switch to neo4j:5-enterprise to opt into commercial
   # features, and set NEO4J_ACCEPT_LICENSE_AGREEMENT=yes below.

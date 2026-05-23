@@ -95,7 +95,6 @@ web_environment:
   - DDEV_NEO4J_HEAP_INITIAL=512m
   - DDEV_NEO4J_HEAP_MAX=1G
   - DDEV_NEO4J_PAGECACHE=512m
-  - NEO4J_PLUGINS=["apoc", "graph-data-science"]
   - NEO4J_DOCKER_IMAGE=neo4j:5-community
   - NEO4J_ACCEPT_LICENSE_AGREEMENT=no
 ```
@@ -103,6 +102,12 @@ web_environment:
 To claim ownership of the file (so a future `ddev add-on get` won't
 overwrite your edits), delete the `#ddev-generated` marker comment at
 the top.
+
+> **Note:** values that contain YAML flow indicators (`[`, `]`, `{`,
+> `}`, `,`) cannot live in `config.neo4j.yaml` — they get inlined as
+> plain scalars into the rendered base compose file and break the
+> merged-file YAML parse. To override the plugin list, edit
+> `NEO4J_PLUGINS` directly in `.ddev/docker-compose.neo4j.yaml`.
 
 ### Use Neo4j Enterprise (opt-in)
 
@@ -116,10 +121,14 @@ You are responsible for complying with Neo4j's commercial license.
 
 ### Disable plugins
 
+Edit the `NEO4J_PLUGINS` line in `.ddev/docker-compose.neo4j.yaml` and
+set it to `[]`:
+
 ```yaml
-web_environment:
-  - NEO4J_PLUGINS=[]
+      - 'NEO4J_PLUGINS=[]'
 ```
+
+Then run `ddev restart`.
 
 ### Low-memory hosts
 
