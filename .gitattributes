@@ -1,0 +1,17 @@
+# Normalize line endings across platforms. Critical for shell scripts
+# embedded in install.yaml and tests/test.bats — CRLF endings would
+# break them on Linux runners.
+* text=auto eol=lf
+
+# Treat *.bats as shell scripts for diffs.
+*.bats     text eol=lf linguist-language=Shell
+*.yaml     text eol=lf
+*.yml      text eol=lf
+*.php      text eol=lf
+*.conf     text eol=lf
+*.sh       text eol=lf
+
+# Binary blobs (none today; keep here for future-proofing).
+*.png      binary
+*.jpg      binary
+*.gif      binary
