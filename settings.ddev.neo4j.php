@@ -2,14 +2,14 @@
 
 /**
  * @file
- * #ddev-generated: ddev/ddev-neo4j
+ * #ddev-generated: kevinquillen/ddev-neo4j
  *
  * Neo4j connection block for Drupal sites that consume Neo4j via
  * $settings['content_graph_neo4j'] (or other modules that read the
  * same shape). Included automatically from sites/default/settings.php
- * by the ddev/ddev-neo4j add-on.
+ * by the kevinquillen/ddev-neo4j add-on.
  *
- * Re-running `ddev add-on get ddev/ddev-neo4j` will overwrite this
+ * Re-running `ddev add-on get kevinquillen/ddev-neo4j` will overwrite this
  * file. For non-DDEV environments, define
  * $settings['content_graph_neo4j'] yourself with environment-
  * appropriate credentials.

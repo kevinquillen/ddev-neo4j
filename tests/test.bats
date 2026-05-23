@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-# Integration tests for the ddev/ddev-neo4j add-on, run via bats-core.
+# Integration tests for the kevinquillen/ddev-neo4j add-on, run via bats-core.
 #
 # Local prerequisites (macOS):
 #   brew install bats-core bats-assert bats-file bats-support
@@ -17,7 +17,7 @@
 setup() {
   set -eu -o pipefail
 
-  export GITHUB_REPO=ddev/ddev-neo4j
+  export GITHUB_REPO=kevinquillen/ddev-neo4j
 
   TEST_BREW_PREFIX="$(brew --prefix 2>/dev/null || true)"
   export BATS_LIB_PATH="${BATS_LIB_PATH:-}:${TEST_BREW_PREFIX}/lib:/usr/lib/bats"

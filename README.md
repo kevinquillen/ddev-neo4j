@@ -1,6 +1,6 @@
 # ddev-neo4j
 
-[![tests](https://github.com/ddev/ddev-neo4j/actions/workflows/tests.yml/badge.svg)](https://github.com/ddev/ddev-neo4j/actions/workflows/tests.yml)
+[![tests](https://github.com/kevinquillen/ddev-neo4j/actions/workflows/tests.yml/badge.svg)](https://github.com/kevinquillen/ddev-neo4j/actions/workflows/tests.yml)
 ![Add-on Registry](https://img.shields.io/badge/DDEV%20add--on-neo4j-blue)
 ![Project is maintained](https://img.shields.io/maintenance/yes/2026)
 
@@ -29,7 +29,7 @@ useful for any DDEV project that needs a local graph database.
 ## Install
 
 ```bash
-ddev add-on get ddev/ddev-neo4j
+ddev add-on get kevinquillen/ddev-neo4j
 ddev restart
 ```
 

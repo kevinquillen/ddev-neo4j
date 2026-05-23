@@ -1,5 +1,5 @@
 #ddev-generated
-# Neo4j service for DDEV, provided by ddev/ddev-neo4j.
+# Neo4j service for DDEV, provided by kevinquillen/ddev-neo4j.
 #
 # Exposes the Neo4j Browser UI through the DDEV router at
 # https://<project>.ddev.site:7475 and Bolt at neo4j:7687 from the
