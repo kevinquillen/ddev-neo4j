@@ -1,0 +1,136 @@
+# Details about the install.yaml file are at
+# https://docs.ddev.com/en/stable/users/extend/creating-add-ons/
+name: neo4j
+
+# Minimum DDEV version. v1.24.10 introduced the x-ddev describe
+# extensions used by docker-compose.neo4j.yaml.
+ddev_version_constraint: ">= v1.24.10"
+
+# Files copied into <project>/.ddev/ on install. Every file shipped
+# here includes a #ddev-generated marker so subsequent
+# `ddev add-on get` runs cleanly replace them and `ddev add-on remove`
+# can clean them up safely.
+project_files:
+  - docker-compose.neo4j.yaml
+  - settings.ddev.neo4j.php
+  - config.neo4j.yaml
+  - neo4j/conf/neo4j.conf
+
+# Pre-install probes run before any files are copied.
+pre_install_actions:
+  - |
+    #ddev-description:Check Docker availability
+    if ! docker info >/dev/null 2>&1; then
+      echo "Docker must be running to install the Neo4j add-on." >&2
+      exit 1
+    fi
+
+  - |
+    #ddev-description:Warn on low-memory hosts
+    # Neo4j defaults to ~1.5G resident (1G heap + 512m pagecache). Warn
+    # but don't block if the host appears to have less than 4G total —
+    # the operator can tune via .ddev/config.neo4j.yaml after install.
+    MEM_BYTES=0
+    case "$(uname -s)" in
+      Darwin) MEM_BYTES=$(sysctl -n hw.memsize 2>/dev/null || echo 0) ;;
+      Linux)
+        if [ -r /proc/meminfo ]; then
+          MEM_KB=$(awk '/^MemTotal:/ { print $2 }' /proc/meminfo 2>/dev/null || echo 0)
+          MEM_BYTES=$((MEM_KB * 1024))
+        fi
+        ;;
+    esac
+    if [ "${MEM_BYTES}" -gt 0 ] && [ "${MEM_BYTES}" -lt 4000000000 ]; then
+      echo "Note: host reports < 4G of memory. Consider lowering"
+      echo "      DDEV_NEO4J_HEAP_MAX and DDEV_NEO4J_PAGECACHE in"
+      echo "      .ddev/config.neo4j.yaml after install."
+    fi
+
+# Post-install actions run after files are copied. They are executed
+# in the context of the project's .ddev/ directory. Drupal wiring is
+# scoped to Drupal project types so non-Drupal projects still get a
+# usable Neo4j service.
+post_install_actions:
+  - |
+    #ddev-description:Wire settings.ddev.neo4j.php into Drupal settings.php
+    case "${DDEV_PROJECT_TYPE}" in
+      drupal|drupal6|drupal7|drupal8|drupal9|drupal10|drupal11)
+        SITES_DIR="${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default"
+        SETTINGS_FILE="${SITES_DIR}/settings.php"
+        # Only wire into an actual Drupal layout; skip silently if the
+        # project hasn't been scaffolded yet (no sites/default).
+        if [ ! -d "${SITES_DIR}" ]; then
+          echo "sites/default not found at ${SITES_DIR}; skipping Drupal wiring."
+          echo "Re-run 'ddev add-on get ddev/ddev-neo4j' once Drupal is installed."
+        else
+          cp -f "${DDEV_APPROOT}/.ddev/settings.ddev.neo4j.php" \
+            "${SITES_DIR}/settings.ddev.neo4j.php"
+          chmod 644 "${SITES_DIR}/settings.ddev.neo4j.php"
+          if [ -f "${SETTINGS_FILE}" ] && ! grep -q "settings.ddev.neo4j.php" "${SETTINGS_FILE}"; then
+            {
+              printf '\n%s\n' '// #ddev-generated: ddev/ddev-neo4j'
+              printf '%s\n' 'if (file_exists($app_root . "/" . $site_path . "/settings.ddev.neo4j.php")) {'
+              printf '%s\n' '  include $app_root . "/" . $site_path . "/settings.ddev.neo4j.php";'
+              printf '%s\n' '}'
+            } >> "${SETTINGS_FILE}"
+          fi
+        fi
+        ;;
+      *)
+        echo "Project type '${DDEV_PROJECT_TYPE}' is not Drupal; skipping settings.php wiring."
+        ;;
+    esac
+
+  - |
+    #ddev-description:Print next steps
+    cat <<EOF
+    --------------------------------------------------------------------
+    Neo4j add-on installed.
+
+      Browser UI:   https://${DDEV_HOSTNAME}:7475
+      Bolt URI:     bolt://neo4j:7687  (from the web container)
+      Username:     neo4j
+      Password:     value of DDEV_NEO4J_PASSWORD (default: ddevpassword)
+
+    Edit .ddev/config.neo4j.yaml to tune memory or change the password,
+    then run \`ddev restart\` to bring up the Neo4j service.
+
+    First boot downloads the APOC + GDS plugins and may take ~30s
+    before the container is healthy.
+    --------------------------------------------------------------------
+    EOF
+
+# Removal actions run on `ddev add-on remove neo4j`. project_files
+# with #ddev-generated markers are deleted automatically; the steps
+# below cover side effects the add-on made outside .ddev/.
+removal_actions:
+  - |
+    #ddev-description:Strip Drupal settings.php include
+    SITES_DIR="${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default"
+    SETTINGS_FILE="${SITES_DIR}/settings.php"
+    if [ -f "${SETTINGS_FILE}" ]; then
+      # Remove our marker comment line and the 3-line include block.
+      perl -i -0pe 's{\n?// #ddev-generated: ddev/ddev-neo4j\nif \(file_exists\(\$app_root \. "/" \. \$site_path \. "/settings\.ddev\.neo4j\.php"\)\) \{\n  include \$app_root \. "/" \. \$site_path \. "/settings\.ddev\.neo4j\.php";\n\}\n}{}g' "${SETTINGS_FILE}" || true
+    fi
+    if [ -f "${SITES_DIR}/settings.ddev.neo4j.php" ] && \
+       grep -q "#ddev-generated" "${SITES_DIR}/settings.ddev.neo4j.php"; then
+      rm -f "${SITES_DIR}/settings.ddev.neo4j.php"
+    fi
+
+  - |
+    #ddev-description:Remove Neo4j config directory if empty
+    NEO4J_DIR="${DDEV_APPROOT}/.ddev/neo4j"
+    if [ -d "${NEO4J_DIR}" ]; then
+      # rmdir -p only removes empty dirs; if the user dropped extra
+      # files in here, leave them alone.
+      rmdir "${NEO4J_DIR}/conf" 2>/dev/null || true
+      rmdir "${NEO4J_DIR}" 2>/dev/null || true
+    fi
+
+  - |
+    #ddev-description:Drop Neo4j named volumes
+    for vol in "ddev-${DDEV_PROJECT}-neo4j-data" \
+               "ddev-${DDEV_PROJECT}-neo4j-logs" \
+               "ddev-${DDEV_PROJECT}-neo4j-plugins"; do
+      docker volume rm "${vol}" >/dev/null 2>&1 || true
+    done
