@@ -16,48 +16,41 @@ services:
     expose:
       - "7474"
       - "7687"
+    # List-form environment matches the pattern used by ddev-solr /
+    # ddev-adminer / ddev-phpmyadmin and is more tolerant of special
+    # characters in values (brackets, quotes) than the mapping form.
     environment:
-      NEO4J_AUTH: "neo4j/${DDEV_NEO4J_PASSWORD:-ddevpassword}"
-      NEO4J_ACCEPT_LICENSE_AGREEMENT: ${NEO4J_ACCEPT_LICENSE_AGREEMENT:-no}
-      NEO4J_PLUGINS: '${NEO4J_PLUGINS:-["apoc", "graph-data-science"]}'
-      NEO4J_dbms_security_procedures_unrestricted: "apoc.*,gds.*"
-      NEO4J_dbms_security_procedures_allowlist: "apoc.*,gds.*"
-      NEO4J_server_memory_heap_initial__size: "${DDEV_NEO4J_HEAP_INITIAL:-512m}"
-      NEO4J_server_memory_heap_max__size: "${DDEV_NEO4J_HEAP_MAX:-1G}"
-      NEO4J_server_memory_pagecache_size: "${DDEV_NEO4J_PAGECACHE:-512m}"
-      NEO4J_server_default__listen__address: "0.0.0.0"
+      - NEO4J_AUTH=neo4j/${DDEV_NEO4J_PASSWORD:-ddevpassword}
+      - NEO4J_ACCEPT_LICENSE_AGREEMENT=${NEO4J_ACCEPT_LICENSE_AGREEMENT:-no}
+      - NEO4J_PLUGINS=${NEO4J_PLUGINS:-["apoc", "graph-data-science"]}
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*,gds.*
+      - NEO4J_dbms_security_procedures_allowlist=apoc.*,gds.*
+      - NEO4J_server_memory_heap_initial__size=${DDEV_NEO4J_HEAP_INITIAL:-512m}
+      - NEO4J_server_memory_heap_max__size=${DDEV_NEO4J_HEAP_MAX:-1G}
+      - NEO4J_server_memory_pagecache_size=${DDEV_NEO4J_PAGECACHE:-512m}
+      - NEO4J_server_default__listen__address=0.0.0.0
       # Router integration: serve Neo4j Browser at
       # https://<project>.ddev.site:7475 (HTTPS via the DDEV router)
       # and http://<project>.ddev.site:7474. Matches the port-based
       # pattern used by ddev-phpmyadmin / ddev-solr / ddev-adminer.
-      VIRTUAL_HOST: $DDEV_HOSTNAME
-      HTTP_EXPOSE: "7474:7474"
-      HTTPS_EXPOSE: "7475:7474"
+      - VIRTUAL_HOST=$DDEV_HOSTNAME
+      - HTTP_EXPOSE=7474:7474
+      - HTTPS_EXPOSE=7475:7474
     volumes:
       - neo4j-data:/data
       - neo4j-logs:/logs
       - neo4j-plugins:/plugins
       - ./neo4j/conf/neo4j.conf:/conf/neo4j.conf:ro
-    networks:
-      - default
     healthcheck:
-      # Verify Bolt is actually accepting queries rather than just HTTP
-      # responding — Neo4j serves the browser UI before Bolt is ready
-      # during plugin install, so a plain HTTP probe can flip "healthy"
-      # while bolt://neo4j:7687 still refuses connections.
-      test:
-        - "CMD-SHELL"
-        - "cypher-shell -a bolt://localhost:7687 -u neo4j -p \"${DDEV_NEO4J_PASSWORD:-ddevpassword}\" 'RETURN 1' >/dev/null 2>&1 || exit 1"
+      # HTTP probe on the Browser UI port. Bolt usually comes online
+      # within a second of HTTP, and the bats suite waits on Bolt
+      # explicitly before exercising queries, so a plain HTTP check
+      # is robust enough for the depends_on gate.
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:7474/ || exit 1"]
       interval: 10s
-      timeout: 10s
-      retries: 24
+      timeout: 5s
+      retries: 18
       start_period: 60s
-    x-ddev:
-      describe-info: |
-        Neo4j Browser: https://${DDEV_HOSTNAME}:7475
-        Bolt URI:      bolt://neo4j:7687 (from web container)
-        Username:      neo4j
-        Password:      ${DDEV_NEO4J_PASSWORD:-ddevpassword}
 
   web:
     # Wait for Neo4j's healthcheck before web is reported "running"
@@ -69,8 +62,5 @@ services:
 
 volumes:
   neo4j-data:
-    name: "ddev-${DDEV_PROJECT}-neo4j-data"
   neo4j-logs:
-    name: "ddev-${DDEV_PROJECT}-neo4j-logs"
   neo4j-plugins:
-    name: "ddev-${DDEV_PROJECT}-neo4j-plugins"

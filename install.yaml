@@ -129,8 +129,15 @@ removal_actions:
 
   - |
     #ddev-description:Drop Neo4j named volumes
-    for vol in "ddev-${DDEV_PROJECT}-neo4j-data" \
-               "ddev-${DDEV_PROJECT}-neo4j-logs" \
-               "ddev-${DDEV_PROJECT}-neo4j-plugins"; do
-      docker volume rm "${vol}" >/dev/null 2>&1 || true
+    # Compose names the volumes <COMPOSE_PROJECT_NAME>_<volume>, which
+    # in DDEV resolves to ddev-<project>_neo4j-{data,logs,plugins}.
+    # Match by suffix so the cleanup works regardless of the exact
+    # project-name prefix DDEV chose.
+    for suffix in neo4j-data neo4j-logs neo4j-plugins; do
+      docker volume ls --quiet --filter "name=_${suffix}$" 2>/dev/null \
+        | while read -r vol; do
+          case "${vol}" in
+            *"${DDEV_PROJECT}"*) docker volume rm "${vol}" >/dev/null 2>&1 || true ;;
+          esac
+        done
     done
