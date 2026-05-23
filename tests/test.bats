@@ -59,6 +59,14 @@ PHP
 
 teardown() {
   set -eu -o pipefail
+  # Dump Neo4j container logs on test failure so CI artifacts capture
+  # why the container died. BATS_TEST_COMPLETED is set to 1 only when
+  # the test passed; absent means it failed.
+  if [ -z "${BATS_TEST_COMPLETED:-}" ]; then
+    echo "# --- neo4j container logs (last 200 lines) ---" >&3
+    docker logs --tail 200 "ddev-${PROJNAME}-neo4j" 2>&1 | sed 's/^/#   /' >&3 || true
+    echo "# --- end neo4j container logs ---" >&3
+  fi
   ddev delete -Oy "${PROJNAME}" >/dev/null 2>&1 || true
   if [ -n "${GITHUB_ENV:-}" ]; then
     [ -e "${GITHUB_ENV}" ] && echo "TESTDIR=${HOME}/tmp/${PROJNAME}" >> "${GITHUB_ENV}"
