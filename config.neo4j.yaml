@@ -1,0 +1,33 @@
+#ddev-generated
+# Per-project overrides for the ddev/ddev-neo4j add-on.
+#
+# This file is intentionally editable. DDEV merges `web_environment`
+# entries into the web container and into docker-compose interpolation,
+# so the Neo4j service picks them up on `ddev restart`. Re-running
+# `ddev add-on get ddev/ddev-neo4j` will NOT overwrite local edits as
+# long as the #ddev-generated marker above is removed.
+#
+# Remove the marker line to claim ownership of this file.
+web_environment:
+  # Default credentials. Override in shared environments.
+  - DDEV_NEO4J_PASSWORD=ddevpassword
+
+  # Database name exposed in $settings['content_graph_neo4j']['database'].
+  # Neo4j 5 community supports the default database 'neo4j'; enterprise
+  # supports multiple named databases.
+  - DDEV_NEO4J_DATABASE=neo4j
+
+  # JVM heap + page cache. Defaults: 512m initial / 1G max / 512m
+  # pagecache. Shrink for low-memory hosts; grow for large graphs.
+  - DDEV_NEO4J_HEAP_INITIAL=512m
+  - DDEV_NEO4J_HEAP_MAX=1G
+  - DDEV_NEO4J_PAGECACHE=512m
+
+  # Plugin list. JSON-encoded array consumed by the Neo4j image.
+  # Set to '[]' to disable all plugins.
+  - NEO4J_PLUGINS=["apoc", "graph-data-science"]
+
+  # Image tag. Switch to neo4j:5-enterprise to opt into commercial
+  # features, and set NEO4J_ACCEPT_LICENSE_AGREEMENT=yes below.
+  - NEO4J_DOCKER_IMAGE=neo4j:5-community
+  - NEO4J_ACCEPT_LICENSE_AGREEMENT=no
