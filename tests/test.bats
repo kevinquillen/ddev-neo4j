@@ -135,16 +135,23 @@ health_checks() {
   run ddev restart -y
   assert_success
 
-  # Wait for Neo4j to accept Bolt queries (plugin install can take
-  # 30+ seconds on first boot).
+  local neo4j_container="ddev-${PROJNAME}-neo4j"
+
+  # cypher-shell ships with the Neo4j image and is on PATH there, but
+  # is not installed in DDEV's web container — so we exec it inside
+  # the neo4j container directly.
+  local cypher="docker exec ${neo4j_container} cypher-shell -a bolt://localhost:7687 -u neo4j -p ddevpassword"
+
+  # Wait for Bolt to accept queries. Plugin install on first boot can
+  # take 30-60s; the depends_on healthcheck only verifies HTTP.
   local i=0
-  until ddev exec "cypher-shell -a bolt://neo4j:7687 -u neo4j -p ddevpassword 'RETURN 1' >/dev/null 2>&1"; do
+  until ${cypher} 'RETURN 1' >/dev/null 2>&1; do
     i=$((i + 1))
-    [ "${i}" -gt 30 ] && { echo "Neo4j never became reachable" >&3; return 1; }
+    [ "${i}" -gt 45 ] && { echo "# Neo4j never became reachable on Bolt" >&3; return 1; }
     sleep 2
   done
 
-  run ddev exec "cypher-shell -a bolt://neo4j:7687 -u neo4j -p ddevpassword 'CREATE (:DdevAddonTest {id: 1})'"
+  run ${cypher} 'CREATE (:DdevAddonTest {id: 1})'
   assert_success
 
   run ddev restart -y
@@ -152,13 +159,13 @@ health_checks() {
 
   # Re-check Bolt comes back after restart.
   i=0
-  until ddev exec "cypher-shell -a bolt://neo4j:7687 -u neo4j -p ddevpassword 'RETURN 1' >/dev/null 2>&1"; do
+  until ${cypher} 'RETURN 1' >/dev/null 2>&1; do
     i=$((i + 1))
-    [ "${i}" -gt 30 ] && { echo "Neo4j never came back after restart" >&3; return 1; }
+    [ "${i}" -gt 45 ] && { echo "# Neo4j never came back after restart" >&3; return 1; }
     sleep 2
   done
 
-  run ddev exec "cypher-shell -a bolt://neo4j:7687 -u neo4j -p ddevpassword 'MATCH (n:DdevAddonTest) RETURN count(n) AS c'"
+  run ${cypher} 'MATCH (n:DdevAddonTest) RETURN count(n) AS c'
   assert_success
   assert_output --partial "1"
 }
@@ -184,7 +191,7 @@ health_checks() {
   assert_success
 
   # docker-compose file is removed from .ddev/.
-  refute_file_exist "${TESTDIR}/.ddev/docker-compose.neo4j.yaml"
+  assert_file_not_exists "${TESTDIR}/.ddev/docker-compose.neo4j.yaml"
 
   # All Neo4j volumes scoped to this project are gone.
   run bash -c "docker volume ls --format '{{.Name}}' | grep -E '${PROJNAME}.*neo4j' | wc -l"
@@ -212,5 +219,5 @@ health_checks() {
   [[ "${output}" == "200" ]] || [[ "${output}" == "303" ]] || [[ "${output}" == "302" ]]
 
   # No settings.ddev.neo4j.php should have been copied into sites/default.
-  refute_file_exist "${TESTDIR}/web/sites/default/settings.ddev.neo4j.php"
+  assert_file_not_exists "${TESTDIR}/web/sites/default/settings.ddev.neo4j.php"
 }
