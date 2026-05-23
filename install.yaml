@@ -14,7 +14,6 @@ project_files:
   - docker-compose.neo4j.yaml
   - settings.ddev.neo4j.php
   - config.neo4j.yaml
-  - neo4j/conf/neo4j.conf
 
 # Pre-install probes run before any files are copied.
 pre_install_actions:
@@ -115,16 +114,6 @@ removal_actions:
     if [ -f "${SITES_DIR}/settings.ddev.neo4j.php" ] && \
        grep -q "#ddev-generated" "${SITES_DIR}/settings.ddev.neo4j.php"; then
       rm -f "${SITES_DIR}/settings.ddev.neo4j.php"
-    fi
-
-  - |
-    #ddev-description:Remove Neo4j config directory if empty
-    NEO4J_DIR="${DDEV_APPROOT}/.ddev/neo4j"
-    if [ -d "${NEO4J_DIR}" ]; then
-      # rmdir -p only removes empty dirs; if the user dropped extra
-      # files in here, leave them alone.
-      rmdir "${NEO4J_DIR}/conf" 2>/dev/null || true
-      rmdir "${NEO4J_DIR}" 2>/dev/null || true
     fi
 
   - |
