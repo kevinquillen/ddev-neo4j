@@ -91,10 +91,12 @@ health_checks() {
   assert_success
   assert_output --partial "bolt://neo4j:7687"
 
-  # Named volumes were created with the project-scoped names.
+  # Compose names volumes <project>_<volume>; just confirm a neo4j
+  # data volume scoped to this DDEV project exists.
   run docker volume ls --format '{{.Name}}'
   assert_success
-  assert_output --partial "ddev-${PROJNAME}-neo4j-data"
+  assert_output --partial "${PROJNAME}"
+  assert_output --partial "neo4j-data"
 }
 
 @test "install from directory" {
@@ -160,9 +162,9 @@ health_checks() {
   run ddev restart -y
   assert_success
 
-  # Confirm the volume exists before removal.
-  run docker volume ls --format '{{.Name}}'
-  assert_output --partial "ddev-${PROJNAME}-neo4j-data"
+  # Confirm a neo4j volume tied to this project exists before removal.
+  run bash -c "docker volume ls --format '{{.Name}}' | grep -E '${PROJNAME}.*neo4j-data'"
+  assert_success
 
   run ddev add-on remove neo4j
   assert_success
@@ -176,11 +178,10 @@ health_checks() {
   # docker-compose file is removed from .ddev/.
   refute_file_exist "${TESTDIR}/.ddev/docker-compose.neo4j.yaml"
 
-  # Named volumes are gone.
-  run docker volume ls --format '{{.Name}}'
-  refute_output --partial "ddev-${PROJNAME}-neo4j-data"
-  refute_output --partial "ddev-${PROJNAME}-neo4j-logs"
-  refute_output --partial "ddev-${PROJNAME}-neo4j-plugins"
+  # All Neo4j volumes scoped to this project are gone.
+  run bash -c "docker volume ls --format '{{.Name}}' | grep -E '${PROJNAME}.*neo4j' | wc -l"
+  assert_success
+  assert_output "0"
 }
 
 @test "settings.php include is skipped for non-Drupal projects" {
