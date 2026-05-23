@@ -118,15 +118,15 @@ removal_actions:
 
   - |
     #ddev-description:Drop Neo4j named volumes
-    # Compose names the volumes <COMPOSE_PROJECT_NAME>_<volume>, which
-    # in DDEV resolves to ddev-<project>_neo4j-{data,logs,plugins}.
-    # Match by suffix so the cleanup works regardless of the exact
-    # project-name prefix DDEV chose.
-    for suffix in neo4j-data neo4j-logs neo4j-plugins; do
-      docker volume ls --quiet --filter "name=_${suffix}$" 2>/dev/null \
-        | while read -r vol; do
-          case "${vol}" in
-            *"${DDEV_PROJECT}"*) docker volume rm "${vol}" >/dev/null 2>&1 || true ;;
-          esac
-        done
+    # removal_actions run while the project's containers are still up,
+    # so we explicitly stop and remove the Neo4j container first;
+    # otherwise the volumes are "in use" and 'docker volume rm' fails.
+    # The container is named via container_name with a hyphen separator,
+    # while compose names volumes with an underscore separator.
+    docker stop "ddev-${DDEV_PROJECT}-neo4j" >/dev/null 2>&1 || true
+    docker rm "ddev-${DDEV_PROJECT}-neo4j" >/dev/null 2>&1 || true
+    for vol in "ddev-${DDEV_PROJECT}_neo4j-data" \
+               "ddev-${DDEV_PROJECT}_neo4j-logs" \
+               "ddev-${DDEV_PROJECT}_neo4j-plugins"; do
+      docker volume rm "${vol}" >/dev/null 2>&1 || true
     done
