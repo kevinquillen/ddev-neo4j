@@ -61,14 +61,14 @@ post_install_actions:
         # project hasn't been scaffolded yet (no sites/default).
         if [ ! -d "${SITES_DIR}" ]; then
           echo "sites/default not found at ${SITES_DIR}; skipping Drupal wiring."
-          echo "Re-run 'ddev add-on get ddev/ddev-neo4j' once Drupal is installed."
+          echo "Re-run 'ddev add-on get kevinquillen/ddev-neo4j' once Drupal is installed."
         else
           cp -f "${DDEV_APPROOT}/.ddev/settings.ddev.neo4j.php" \
             "${SITES_DIR}/settings.ddev.neo4j.php"
           chmod 644 "${SITES_DIR}/settings.ddev.neo4j.php"
           if [ -f "${SETTINGS_FILE}" ] && ! grep -q "settings.ddev.neo4j.php" "${SETTINGS_FILE}"; then
             {
-              printf '\n%s\n' '// #ddev-generated: ddev/ddev-neo4j'
+              printf '\n%s\n' '// #ddev-generated: kevinquillen/ddev-neo4j'
               printf '%s\n' 'if (file_exists($app_root . "/" . $site_path . "/settings.ddev.neo4j.php")) {'
               printf '%s\n' '  include $app_root . "/" . $site_path . "/settings.ddev.neo4j.php";'
               printf '%s\n' '}'
@@ -110,7 +110,7 @@ removal_actions:
     SETTINGS_FILE="${SITES_DIR}/settings.php"
     if [ -f "${SETTINGS_FILE}" ]; then
       # Remove our marker comment line and the 3-line include block.
-      perl -i -0pe 's{\n?// #ddev-generated: ddev/ddev-neo4j\nif \(file_exists\(\$app_root \. "/" \. \$site_path \. "/settings\.ddev\.neo4j\.php"\)\) \{\n  include \$app_root \. "/" \. \$site_path \. "/settings\.ddev\.neo4j\.php";\n\}\n}{}g' "${SETTINGS_FILE}" || true
+      perl -i -0pe 's{\n?// #ddev-generated: kevinquillen/ddev-neo4j\nif \(file_exists\(\$app_root \. "/" \. \$site_path \. "/settings\.ddev\.neo4j\.php"\)\) \{\n  include \$app_root \. "/" \. \$site_path \. "/settings\.ddev\.neo4j\.php";\n\}\n}{}g' "${SETTINGS_FILE}" || true
     fi
     if [ -f "${SITES_DIR}/settings.ddev.neo4j.php" ] && \
        grep -q "#ddev-generated" "${SITES_DIR}/settings.ddev.neo4j.php"; then

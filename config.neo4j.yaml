@@ -1,10 +1,10 @@
 #ddev-generated
-# Per-project overrides for the ddev/ddev-neo4j add-on.
+# Per-project overrides for the kevinquillen/ddev-neo4j add-on.
 #
 # This file is intentionally editable. DDEV merges `web_environment`
 # entries into the web container and into docker-compose interpolation,
 # so the Neo4j service picks them up on `ddev restart`. Re-running
-# `ddev add-on get ddev/ddev-neo4j` will NOT overwrite local edits as
+# `ddev add-on get kevinquillen/ddev-neo4j` will NOT overwrite local edits as
 # long as the #ddev-generated marker above is removed.
 #
 # Remove the marker line to claim ownership of this file.
