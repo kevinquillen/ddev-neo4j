@@ -2,9 +2,10 @@
 # Neo4j service for DDEV, provided by kevinquillen/ddev-neo4j.
 #
 # Exposes the Neo4j Browser UI through the DDEV router at
-# https://<project>.ddev.site:7475 and Bolt at neo4j:7687 from the
-# web container. Data and logs are stored in named volumes so they
-# survive `ddev stop` but are wiped by `ddev add-on remove neo4j`.
+# https://<project>.ddev.site:7475, Bolt to the web container at
+# bolt://neo4j:7687, and Bolt to the host at bolt://<project>.ddev.site:7687
+# (or bolt://localhost:7687). Data and logs are stored in named volumes
+# so they survive `ddev stop` but are wiped by `ddev add-on remove neo4j`.
 services:
   neo4j:
     container_name: ddev-${DDEV_SITENAME}-neo4j
@@ -16,6 +17,15 @@ services:
     expose:
       - "7474"
       - "7687"
+    # Publish Bolt on the host loopback so the Neo4j Browser UI (which
+    # runs in your actual browser, not the DDEV network) can reach it
+    # at bolt://<project>.ddev.site:7687. The DDEV router only proxies
+    # HTTP(S), so raw-TCP protocols like Bolt have to bind directly.
+    # 127.0.0.1 binding keeps the port off the LAN. Override the host
+    # port via DDEV_NEO4J_BOLT_HOST_PORT if 7687 collides with another
+    # project or a local Neo4j install.
+    ports:
+      - "127.0.0.1:${DDEV_NEO4J_BOLT_HOST_PORT:-7687}:7687"
     # List-form environment matches the pattern used by ddev-solr /
     # ddev-adminer / ddev-phpmyadmin and is more tolerant of special
     # characters in values (brackets, quotes) than the mapping form.

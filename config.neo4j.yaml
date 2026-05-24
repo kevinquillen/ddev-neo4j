@@ -33,3 +33,8 @@ web_environment:
   # features, and set NEO4J_ACCEPT_LICENSE_AGREEMENT=yes below.
   - NEO4J_DOCKER_IMAGE=neo4j:5-community
   - NEO4J_ACCEPT_LICENSE_AGREEMENT=no
+
+  # Host loopback port for Bolt. Change if 7687 collides with another
+  # DDEV project running Neo4j, or a Neo4j installed natively on your
+  # host. The container side stays on 7687 either way.
+  - DDEV_NEO4J_BOLT_HOST_PORT=7687
