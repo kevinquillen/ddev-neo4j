@@ -6,8 +6,7 @@
 
 A [DDEV](https://ddev.com/) add-on that provisions a [Neo4j](https://neo4j.com/)
 graph database service alongside your DDEV project. Designed to be
-zero-config for Drupal sites that consume Neo4j (e.g.
-[`content_graph_neo4j`](https://github.com/velir/content_graph)) but
+zero-config for Drupal sites that consume Neo4j but
 useful for any DDEV project that needs a local graph database.
 
 ## What you get
