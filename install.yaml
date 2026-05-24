@@ -45,6 +45,38 @@ pre_install_actions:
       echo "      .ddev/config.neo4j.yaml after install."
     fi
 
+  - |
+    #ddev-description:Generate Bolt TLS cert so bolt+s:// works from the Browser UI
+    # Without a cert, Bolt only listens in plaintext on 7687, and the
+    # Neo4j Browser UI (loaded over HTTPS via DDEV's router) refuses
+    # plaintext WebSocket connections with a mixed-content block.
+    # Generated cert is regenerated every install so it always matches
+    # the current DDEV_HOSTNAME.
+    CERT_DIR="${DDEV_APPROOT}/.ddev/neo4j/certs/bolt"
+    mkdir -p "${CERT_DIR}"
+    if command -v mkcert >/dev/null 2>&1; then
+      mkcert -cert-file "${CERT_DIR}/public.crt" \
+             -key-file  "${CERT_DIR}/private.key" \
+             "${DDEV_HOSTNAME}" "localhost" "127.0.0.1" "neo4j" >/dev/null 2>&1
+      echo "Generated Bolt TLS cert via mkcert. Use bolt+s:// in the Browser UI."
+    elif command -v openssl >/dev/null 2>&1; then
+      openssl req -x509 -newkey rsa:2048 -sha256 -days 3650 -nodes \
+        -keyout "${CERT_DIR}/private.key" \
+        -out    "${CERT_DIR}/public.crt" \
+        -subj "/CN=${DDEV_HOSTNAME}" \
+        -addext "subjectAltName=DNS:${DDEV_HOSTNAME},DNS:localhost,DNS:neo4j,IP:127.0.0.1" \
+        >/dev/null 2>&1
+      echo "mkcert not found; generated self-signed Bolt TLS cert via openssl."
+      echo "Use bolt+ssc:// in the Browser UI (accepts self-signed certs),"
+      echo "or run 'mkcert -install' then 'ddev add-on get kevinquillen/ddev-neo4j' again"
+      echo "to get a cert your browser trusts by default."
+    else
+      echo "Neither mkcert nor openssl is available on PATH." >&2
+      echo "Install one of them and re-run the add-on install." >&2
+      exit 1
+    fi
+    chmod 644 "${CERT_DIR}/public.crt" "${CERT_DIR}/private.key"
+
 # Post-install actions run after files are copied. They are executed
 # in the context of the project's .ddev/ directory. Drupal wiring is
 # scoped to Drupal project types so non-Drupal projects still get a
@@ -87,12 +119,13 @@ post_install_actions:
     Neo4j add-on installed.
 
       Browser UI:   https://${DDEV_HOSTNAME}:7475
-      Bolt (host):  bolt://${DDEV_HOSTNAME}:7687
-      Bolt (web):   bolt://neo4j:7687  (from inside the web container)
+      Bolt (host):  bolt+s://${DDEV_HOSTNAME}:7687   (browser, host tools)
+      Bolt (web):   bolt://neo4j:7687                (PHP / drush / cypher-shell from web container)
       Username:     neo4j
       Password:     value of DDEV_NEO4J_PASSWORD (default: ddevpassword)
 
-    In the Browser UI's Connect form, enter the Bolt (host) URL above.
+    In the Browser UI's Connect form, paste the Bolt (host) URL above.
+    If mkcert was unavailable at install time, use bolt+ssc:// instead.
 
     Edit .ddev/config.neo4j.yaml to tune memory or change the password,
     then run \`ddev restart\` to bring up the Neo4j service.
@@ -117,6 +150,13 @@ removal_actions:
     if [ -f "${SITES_DIR}/settings.ddev.neo4j.php" ] && \
        grep -q "#ddev-generated" "${SITES_DIR}/settings.ddev.neo4j.php"; then
       rm -f "${SITES_DIR}/settings.ddev.neo4j.php"
+    fi
+
+  - |
+    #ddev-description:Remove generated Bolt TLS cert directory
+    CERT_DIR="${DDEV_APPROOT}/.ddev/neo4j"
+    if [ -d "${CERT_DIR}" ]; then
+      rm -rf "${CERT_DIR}"
     fi
 
   - |
