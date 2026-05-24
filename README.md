@@ -46,14 +46,19 @@ In the Browser's **Connect** form:
 
 | Field | Value |
 | --- | --- |
-| Connect URL | `bolt://<project>.ddev.site:7687` (or `bolt://localhost:7687`) |
+| Connect URL | `bolt+s://<project>.ddev.site:7687` |
 | Authentication | Username / Password |
 | Username | `neo4j` |
 | Password | `ddevpassword` (override via `.ddev/config.neo4j.yaml`) |
 
-The Browser UI loads from DDEV's router, but its Bolt connection has
-to bypass the router (Bolt is raw TCP, not HTTP), so the add-on
-publishes container port 7687 to `127.0.0.1:7687` on your host.
+The cert is generated at install time with `mkcert` — the same tool
+DDEV uses for its own TLS — so it's signed by the same root CA your
+browser already trusts. No certificate warning, no `bolt+ssc://`
+workaround.
+
+If `mkcert` wasn't available at install time, the add-on falls back
+to an `openssl` self-signed cert; use `bolt+ssc://<project>.ddev.site:7687`
+in that case (the Browser will prompt you to trust it once).
 
 ## Connect from your project
 
@@ -85,9 +90,13 @@ ddev exec cypher-shell -a bolt://neo4j:7687 -u neo4j -p ddevpassword
 
 | Caller | Endpoint |
 | --- | --- |
-| PHP / drush / web container | `bolt://neo4j:7687` |
-| Host machine (Browser UI, Neo4j Desktop, local cypher-shell) | `bolt://<project>.ddev.site:7687` or `bolt://localhost:7687` |
+| PHP / drush / web container | `bolt://neo4j:7687` (plaintext, in-network) |
+| Host machine (Browser UI, Neo4j Desktop, local cypher-shell) | `bolt+s://<project>.ddev.site:7687` |
 | HTTP API (from web container) | `http://neo4j:7474` |
+
+Neo4j is configured with `server.bolt.tls_level=OPTIONAL`, so the same
+port 7687 accepts both plaintext Bolt (for in-network clients) and
+TLS-wrapped Bolt (for the Browser UI and any host-side client).
 
 Override the host-side Bolt port via `DDEV_NEO4J_BOLT_HOST_PORT` in
 `.ddev/config.neo4j.yaml` if 7687 collides with another project.
